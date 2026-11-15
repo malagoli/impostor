@@ -413,8 +413,9 @@ function freshState(prev) {
 
 function save() {
   try {
-    if (state.screen === "setup" || state.screen === "final") localStorage.removeItem(STORE_KEY);
-    else localStorage.setItem(STORE_KEY, JSON.stringify(state));
+    // nella schermata iniziale la partita salvata resta, così "Riprendi" la ritrova
+    if (state.screen === "final") localStorage.removeItem(STORE_KEY);
+    else if (state.screen !== "setup") localStorage.setItem(STORE_KEY, JSON.stringify(state));
     localStorage.setItem(STORE_KEY + "-setup", JSON.stringify({ names: state.names, difficulty: state.difficulty, totalRounds: state.totalRounds, timerSec: state.timerSec, cats: state.cats }));
   } catch (e) {}
 }
@@ -1071,7 +1072,15 @@ document.addEventListener("click", e => {
       resetMatch();
       startRound(); go("reveal"); break;
     }
-    case "resume": { const s = loadSaved(); if (s) { state = s; stopTimer(); render(); } break; }
+    case "resume": {
+      const s = loadSaved();
+      if (s && s.cur && Array.isArray(s.cur.impostors)) {
+        stopTimer(); state = s; delete state.quit;
+        state.cur.running = false; state.cur.hiding = false;
+        go(state.screen);
+      }
+      break;
+    }
     case "flip": if (!c.flipped && !c.hiding) { c.flipped = true; render(); } break;
     case "unlock": e.stopPropagation(); c.hint2[c.revealIdx] = true; render(); break;
     case "hide":
@@ -1116,7 +1125,11 @@ document.addEventListener("click", e => {
     case "again": resetMatch(); startRound(); go("reveal"); break;
     case "setup": state = freshState(state); go("setup"); break;
     case "quit":
-      if (b.dataset.confirm === "1") { stopTimer(); state = freshState(state); go("setup"); }
+      if (b.dataset.confirm === "1") {
+        stopTimer();
+        try { localStorage.setItem(STORE_KEY, JSON.stringify({ ...state, quit: true })); } catch (err) {}
+        state = freshState(state); go("setup");
+      }
       else { b.dataset.confirm = "1"; b.textContent = "Tocca ancora per uscire"; setTimeout(() => { if (b.isConnected) { b.dataset.confirm = ""; b.textContent = "Esci"; } }, 3000); }
       break;
   }
@@ -1126,7 +1139,7 @@ document.addEventListener("click", e => {
 function start(data) {
   const ok = data && data.screen && Array.isArray(data.cats) && (!data.cur || Array.isArray(data.cur.impostors));
   const saved = ok ? null : loadSaved();
-  const savedOk = saved && Array.isArray(saved.cats) && saved.cur && Array.isArray(saved.cur.impostors);
+  const savedOk = saved && !saved.quit && Array.isArray(saved.cats) && saved.cur && Array.isArray(saved.cur.impostors);
   state = ok ? data : savedOk ? saved : freshState(loadSetup());
   if (state.cur) state.cur.hiding = false;
   if (state.cur) state.cur.running = false;
