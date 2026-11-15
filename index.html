@@ -249,6 +249,43 @@ details.rules[open] summary::after { content: "−"; }
 .rules-body .ex { font-size: .9rem; color: var(--text-soft); }
 .resume { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 12px; background: rgba(240,180,60,.12); box-shadow: inset 0 0 0 1px var(--gold); flex-wrap: wrap; }
 
+/* Categories */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chips button {
+  border: 1px solid var(--felt-line); background: transparent; color: var(--text);
+  border-radius: 999px; padding: 8px 14px; font-weight: 600; font-size: .92rem;
+  display: inline-flex; gap: 6px; align-items: baseline;
+}
+.chips button small { font-family: var(--font-mono); font-size: .72rem; color: var(--text-soft); }
+.chips button[aria-pressed="true"] { background: var(--gold); border-color: var(--gold); color: var(--gold-ink); }
+.chips button[aria-pressed="true"] small { color: var(--gold-ink); }
+.chips button[disabled] { opacity: .35; cursor: not-allowed; }
+.info { font-size: .9rem; color: var(--text-soft); }
+.info b { color: var(--text); }
+
+/* Locked hint */
+.hint.locked { border-style: solid; border-color: rgba(240,180,60,.35); background: transparent; }
+.unlock {
+  border: 0; border-radius: 999px; padding: 6px 12px; font-weight: 700; font-size: .85rem;
+  background: var(--gold); color: var(--gold-ink);
+}
+
+/* Secret vote */
+.choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.choices button {
+  border: 1px solid var(--felt-line); background: rgba(0,0,0,.15); color: var(--text);
+  border-radius: 12px; padding: 14px 10px; font-weight: 700; font-size: 1.02rem; overflow-wrap: anywhere;
+}
+.choices button[aria-pressed="true"] { background: var(--red); border-color: var(--red); color: #fff; }
+.secret-card {
+  border-radius: 22px; padding: 30px 22px; text-align: center; display: flex; flex-direction: column; gap: 10px; align-items: center;
+  background: repeating-linear-gradient(45deg, rgba(240,180,60,.10) 0 10px, transparent 10px 20px), rgba(0,0,0,.2);
+  box-shadow: inset 0 0 0 2px var(--felt-line);
+}
+.out-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.out-list span { font-size: .85rem; padding: 3px 10px; border-radius: 999px; background: rgba(0,0,0,.25); color: var(--text-soft); text-decoration: line-through; }
+.guess-row { display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 12px; background: rgba(0,0,0,.18); }
+
 .topbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; font-family: var(--font-mono); font-size: .8rem; color: var(--text-soft); }
 .topbar button { background: none; border: 0; color: var(--text-soft); text-decoration: underline; font-size: .8rem; padding: 4px; }
 .err { color: var(--red); font-size: .9rem; }
@@ -264,62 +301,64 @@ details.rules[open] summary::after { content: "−"; }
 
 <script>
 /* ============================================================
-   PAROLE: tre mazzi, uno per livello.
-   Ogni voce: [parola, suggerimento 1, suggerimento 2]
+   CATEGORIE E PAROLE
+   Formato: "Parola:suggerimento1,suggerimento2; ..."
    Facile    = parole comuni, suggerimenti molto vicini alla parola
    Medio     = parole meno ovvie, suggerimenti per associazione
    Difficile = parole rare o astratte, suggerimenti vaghi e laterali
    ============================================================ */
-const WORDS = {
-  facile: [
-    ["Pizza","Forno","Napoli"],["Spiaggia","Sabbia","Ombrellone"],["Gatto","Fusa","Baffi"],
-    ["Calcio","Pallone","Stadio"],["Gelato","Cono","Freddo"],["Scuola","Zaino","Lavagna"],
-    ["Natale","Regali","Dicembre"],["Cane","Guinzaglio","Abbaiare"],["Treno","Binario","Stazione"],
-    ["Ospedale","Medico","Barella"],["Caffè","Tazzina","Moka"],["Pasta","Pentola","Sugo"],
-    ["Compleanno","Torta","Candeline"],["Telefono","Chiamata","Schermo"],["Bicicletta","Pedali","Catena"],
-    ["Neve","Inverno","Pupazzo"],["Libro","Pagine","Lettura"],["Aereo","Ali","Aeroporto"],
-    ["Cinema","Popcorn","Biglietto"],["Mare","Onde","Sale"],["Montagna","Vetta","Sentiero"],
-    ["Frigorifero","Freddo","Cucina"],["Ombrello","Pioggia","Aprire"],["Chitarra","Corde","Accordi"],
-    ["Matrimonio","Sposi","Anelli"],["Supermercato","Carrello","Cassa"],["Pompiere","Incendio","Sirena"],
-    ["Dentista","Denti","Trapano"],["Orologio","Lancette","Ore"],["Banana","Gialla","Buccia"],
-    ["Piscina","Nuoto","Cloro"],["Zoo","Animali","Gabbie"],["Letto","Cuscino","Dormire"],
-    ["Automobile","Volante","Benzina"],["Carnevale","Maschere","Coriandoli"],["Pane","Forno","Briciole"],
-    ["Fragola","Rossa","Panna"],["Pioggia","Nuvole","Gocce"],["Sole","Caldo","Estate"],
-    ["Polizia","Divisa","Manette"]
-  ],
-  medio: [
-    ["Gondola","Remo","Canale"],["Vulcano","Fumo","Isola"],["Biblioteca","Silenzio","Prestito"],
-    ["Faro","Luce","Costa"],["Tiramisù","Strati","Cacao"],["Ascensore","Bottoni","Piano"],
-    ["Circo","Tendone","Acrobata"],["Museo","Quadri","Guida"],["Matita","Gomma","Punta"],
-    ["Specchio","Riflesso","Vanità"],["Semaforo","Incrocio","Attesa"],["Pinguino","Ghiaccio","Smoking"],
-    ["Castello","Torre","Fossato"],["Mercato","Bancarelle","Contrattare"],["Palestra","Sudore","Pesi"],
-    ["Farmacia","Ricetta","Croce"],["Arcobaleno","Colori","Pioggia"],["Sottomarino","Profondità","Periscopio"],
-    ["Tatuaggio","Pelle","Inchiostro"],["Vendemmia","Settembre","Grappoli"],["Barbiere","Forbici","Barba"],
-    ["Campeggio","Tenda","Falò"],["Discoteca","Musica","Notte"],["Pirata","Tesoro","Benda"],
-    ["Pesca","Amo","Pazienza"],["Ferragosto","Caldo","Gita"],["Oroscopo","Stelle","Segno"],
-    ["Astronauta","Casco","Gravità"],["Cassaforte","Combinazione","Valore"],["Fisarmonica","Mantice","Balera"],
-    ["Lotteria","Biglietto","Fortuna"],["Mongolfiera","Cesto","Cielo"],["Sushi","Riso","Bacchette"],
-    ["Vampiro","Notte","Aglio"],["Trasloco","Scatoloni","Fatica"],["Sagra","Paese","Stand"],
-    ["Ponte","Fiume","Arco"],["Formica","Fila","Briciola"],["Oliva","Ramo","Olio"],
-    ["Notaio","Firma","Atto"]
-  ],
-  difficile: [
-    ["Nostalgia","Passato","Fotografia"],["Eclissi","Ombra","Allineamento"],["Burocrazia","Moduli","Coda"],
-    ["Labirinto","Muri","Uscita"],["Ipnosi","Pendolo","Sonno"],["Clessidra","Sabbia","Fine"],
-    ["Metronomo","Ritmo","Oscillare"],["Eco","Montagna","Ripetere"],["Camaleonte","Colore","Lingua"],
-    ["Fantasma","Lenzuolo","Rumore"],["Origami","Carta","Piega"],["Sciopero","Treni","Protesta"],
-    ["Ventriloquo","Pupazzo","Voce"],["Sonnambulo","Notte","Braccia"],["Vertigine","Altezza","Girare"],
-    ["Telescopio","Lontano","Lente"],["Mosaico","Tessere","Ravenna"],["Equilibrista","Filo","Paura"],
-    ["Ornitorinco","Becco","Strano"],["Bonsai","Pazienza","Piccolo"],["Miraggio","Deserto","Illusione"],
-    ["Ghigliottina","Rivoluzione","Lama"],["Scacchi","Re","Strategia"],["Karaoke","Microfono","Stonato"],
-    ["Amnesia","Vuoto","Ricordi"],["Magnete","Attrazione","Polo"],["Gemelli","Uguali","Due"],
-    ["Autostop","Pollice","Strada"],["Galateo","Forchetta","Educazione"],["Anagramma","Lettere","Ordine"],
-    ["Superstizione","Gatto","Diciassette"],["Fuso orario","Viaggio","Ore"],["Cometa","Coda","Passaggio"],
-    ["Pettegolezzo","Orecchio","Vicini"],["Procrastinare","Domani","Divano"],["Sarcasmo","Tono","Contrario"],
-    ["Inflazione","Prezzi","Carrello"],["Gravità","Mela","Cadere"],["Utopia","Perfetto","Isola"],
-    ["Coincidenza","Caso","Stesso"]
-  ]
+const CATS = {
+  cibo: "Cibo", luoghi: "Luoghi", animali: "Animali", persone: "Persone e mestieri",
+  oggetti: "Oggetti e mezzi", eventi: "Feste e tempo libero", natura: "Natura",
+  italia: "Italia", concetti: "Concetti"
 };
+
+const RAW = {
+  facile: {
+    cibo: "Pizza:Forno,Napoli; Gelato:Cono,Freddo; Caffè:Tazzina,Moka; Pasta:Pentola,Sugo; Banana:Gialla,Buccia; Pane:Forno,Briciole; Fragola:Rossa,Panna; Uovo:Gallina,Guscio; Cioccolato:Cacao,Dolce; Mela:Albero,Torsolo; Formaggio:Latte,Grattugia; Patatine:Fritte,Sale; Latte:Mucca,Bianco",
+    luoghi: "Spiaggia:Sabbia,Ombrellone; Scuola:Zaino,Lavagna; Ospedale:Medico,Barella; Cinema:Popcorn,Biglietto; Montagna:Vetta,Sentiero; Supermercato:Carrello,Cassa; Piscina:Nuoto,Cloro; Zoo:Animali,Gabbie; Aeroporto:Aerei,Valigia; Parco:Panchina,Alberi; Ristorante:Cameriere,Menù; Chiesa:Campane,Messa",
+    animali: "Gatto:Fusa,Baffi; Cane:Guinzaglio,Abbaiare; Leone:Criniera,Ruggito; Elefante:Proboscide,Grande; Pesce:Acqua,Pinne; Cavallo:Zoccoli,Galoppo; Ape:Miele,Pungiglione; Mucca:Latte,Muggire; Coniglio:Carote,Orecchie; Serpente:Veleno,Strisciare; Gallina:Uova,Pollaio; Farfalla:Ali,Bruco",
+    persone: "Pompiere:Incendio,Sirena; Dentista:Denti,Trapano; Poliziotto:Divisa,Manette; Cuoco:Cucina,Cappello; Maestra:Scuola,Bambini; Medico:Camice,Visita; Postino:Lettere,Buste; Pilota:Aereo,Cabina; Contadino:Campi,Trattore; Calciatore:Pallone,Gol; Nonna:Biscotti,Nipoti; Pittore:Pennello,Quadro",
+    oggetti: "Telefono:Chiamata,Schermo; Ombrello:Pioggia,Aprire; Orologio:Lancette,Ore; Letto:Cuscino,Dormire; Frigorifero:Freddo,Cucina; Libro:Pagine,Lettura; Chitarra:Corde,Accordi; Bicicletta:Pedali,Catena; Automobile:Volante,Benzina; Occhiali:Lenti,Vista; Forbici:Tagliare,Lame; Televisione:Telecomando,Canali; Treno:Binario,Stazione",
+    eventi: "Natale:Regali,Dicembre; Compleanno:Torta,Candeline; Matrimonio:Sposi,Anelli; Carnevale:Maschere,Coriandoli; Tennis:Racchetta,Rete; Vacanze:Valigia,Estate; Pasqua:Uova,Colomba; Concerto:Palco,Cantante; Picnic:Coperta,Prato; Halloween:Zucca,Dolcetto; Capodanno:Brindisi,Mezzanotte; Gita:Pullman,Panini; Videogioco:Joystick,Livelli",
+    natura: "Neve:Inverno,Pupazzo; Pioggia:Nuvole,Gocce; Sole:Caldo,Estate; Mare:Onde,Sale; Fiore:Petali,Profumo; Albero:Foglie,Tronco; Luna:Notte,Stelle; Fuoco:Fiamme,Caldo; Vento:Soffiare,Aquilone; Fiume:Acqua,Ponte; Bosco:Alberi,Funghi; Temporale:Tuoni,Fulmini",
+    italia: "Colosseo:Roma,Gladiatori; Venezia:Gondole,Canali; Torre di Pisa:Pendente,Toscana; Mozzarella:Bufala,Bianca; Ferrari:Rossa,Formula 1; Lasagna:Strati,Forno; Vespa:Scooter,Anni '60; Sanremo:Festival,Canzoni; Panettone:Natale,Milano; Vesuvio:Napoli,Vulcano; Cannolo:Sicilia,Ricotta; Carbonara:Uova,Guanciale; Tricolore:Bandiera,Verde"
+  },
+  medio: {
+    cibo: "Tiramisù:Strati,Cacao; Sushi:Riso,Bacchette; Oliva:Ramo,Olio; Popcorn:Mais,Scoppiare; Limone:Aspro,Sorrento; Peperoncino:Calabria,Bruciare; Cipolla:Lacrime,Soffritto; Hamburger:Panino,America; Zucchero:Bustina,Caffè; Brodo:Malato,Caldo; Melanzana:Viola,Parmigiana; Croissant:Colazione,Francia; Noce:Guscio,Schiaccianoci",
+    luoghi: "Biblioteca:Silenzio,Prestito; Faro:Luce,Costa; Museo:Quadri,Guida; Castello:Torre,Fossato; Mercato:Bancarelle,Contrattare; Palestra:Sudore,Pesi; Farmacia:Ricetta,Croce; Discoteca:Musica,Notte; Ponte:Fiume,Arco; Cimitero:Lumini,Fiori; Prigione:Sbarre,Fuga; Banca:Soldi,Sportello; Hotel:Reception,Chiavi",
+    animali: "Pinguino:Ghiaccio,Smoking; Formica:Fila,Briciola; Pipistrello:Grotta,Notte; Giraffa:Collo,Macchie; Gufo:Notte,Saggio; Polpo:Tentacoli,Inchiostro; Delfino:Intelligente,Salti; Tartaruga:Lenta,Guscio; Pavone:Coda,Vanitoso; Scoiattolo:Ghiande,Coda; Lumaca:Bava,Lenta; Zanzara:Estate,Prurito; Volpe:Furba,Rossa",
+    persone: "Astronauta:Casco,Gravità; Barbiere:Forbici,Barba; Pirata:Tesoro,Benda; Notaio:Firma,Atto; Vampiro:Notte,Aglio; Mago:Cilindro,Trucco; Giudice:Tribunale,Martelletto; Bagnino:Spiaggia,Fischietto; Detective:Indizi,Lente; Sarto:Ago,Misure; Clown:Naso,Risate; Idraulico:Tubi,Perdita; Hostess:Volo,Sorriso",
+    oggetti: "Ascensore:Bottoni,Piano; Matita:Gomma,Punta; Specchio:Riflesso,Vanità; Semaforo:Incrocio,Attesa; Sottomarino:Profondità,Periscopio; Cassaforte:Combinazione,Valore; Fisarmonica:Mantice,Balera; Mongolfiera:Cesto,Cielo; Lavatrice:Centrifuga,Calzini; Valigia:Viaggio,Rotelle; Candela:Cera,Stoppino; Bussola:Nord,Ago; Aspirapolvere:Polvere,Rumore",
+    eventi: "Circo:Tendone,Acrobata; Campeggio:Tenda,Falò; Pesca:Amo,Pazienza; Lotteria:Biglietto,Fortuna; Trasloco:Scatoloni,Fatica; Tatuaggio:Pelle,Inchiostro; Laurea:Alloro,Tesi; Settimana bianca:Neve,Skipass; Maratona:Corsa,Traguardo; Esame:Ansia,Voto; Colloquio:Lavoro,Cravatta; Tombola:Numeri,Cartelle; Luna di miele:Viaggio,Sposi",
+    natura: "Vulcano:Fumo,Isola; Arcobaleno:Colori,Pioggia; Deserto:Cammello,Sete; Grotta:Buio,Stalattiti; Cascata:Acqua,Rumore; Ghiacciaio:Freddo,Montagna; Nebbia:Grigio,Pianura; Terremoto:Scosse,Paura; Tramonto:Arancione,Sera; Oasi:Palme,Deserto; Isola:Mare,Naufrago; Alba:Mattina,Gallo; Quercia:Ghiande,Forte",
+    italia: "Gondola:Remo,Canale; Ferragosto:Caldo,Gita; Sagra:Paese,Stand; Palio:Siena,Cavalli; Befana:Calza,Scopa; Pinocchio:Naso,Bugie; Trullo:Puglia,Cono; Grappa:Digestivo,Uva; Dolomiti:Montagne,Rosa; Presepe:Natale,Statuine; Fontana di Trevi:Monetina,Roma; Bocce:Pallino,Anziani; Vendemmia:Settembre,Grappoli",
+    concetti: "Oroscopo:Stelle,Segno; Fortuna:Quadrifoglio,Caso; Amicizia:Fiducia,Insieme; Gelosia:Verde,Coppia; Paura:Buio,Brividi; Noia:Sbadiglio,Domenica; Sorpresa:Regalo,Festa; Segreto:Sussurro,Nessuno; Bugia:Naso,Verità; Fretta:Ritardo,Correre; Vittoria:Coppa,Podio; Coraggio:Leone,Paura"
+  },
+  difficile: {
+    cibo: "Tartufo:Fiuto,Alba; Caviale:Uova,Lusso; Lievito:Crescere,Attesa; Zafferano:Risotto,Fili; Ostrica:Perla,Limone; Kebab:Spiedo,Notte; Liquirizia:Nera,Radice; Bottarga:Sardegna,Grattugiare; Prezzemolo:Ovunque,Verde; Rosmarino:Arrosto,Aghi; Fonduta:Filare,Montagna; Marmellata:Nonna,Barattolo",
+    luoghi: "Labirinto:Muri,Uscita; Osservatorio:Cupola,Notte; Catacombe:Sotterraneo,Ossa; Dogana:Confine,Valigia; Archivio:Polvere,Scaffali; Serra:Vetro,Caldo; Monastero:Silenzio,Preghiera; Autogrill:Viaggio,Panino; Anfiteatro:Pietra,Spettacolo; Porto:Navi,Gru; Bunker:Guerra,Cemento; Cantina:Buio,Botti",
+    animali: "Camaleonte:Colore,Lingua; Ornitorinco:Becco,Strano; Medusa:Trasparente,Bruciore; Bradipo:Lentezza,Ramo; Cicala:Estate,Canto; Lucciola:Luce,Prato; Struzzo:Testa,Sabbia; Riccio:Spine,Palla; Ragno:Tela,Paura; Fenicottero:Rosa,Zampa; Talpa:Buio,Terra; Cuculo:Orologio,Nido; Avvoltoio:Attesa,Cielo",
+    persone: "Ventriloquo:Pupazzo,Voce; Sonnambulo:Notte,Braccia; Equilibrista:Filo,Paura; Archeologo:Pennello,Scavo; Sommelier:Bicchiere,Naso; Spia:Segreto,Occhiali; Eremita:Solitudine,Barba; Mimo:Silenzio,Gesti; Cartomante:Futuro,Carte; Influencer:Telefono,Follower; Speleologo:Corda,Buio; Burattinaio:Fili,Teatro; Gemelli:Uguali,Due",
+    oggetti: "Clessidra:Sabbia,Fine; Metronomo:Ritmo,Oscillare; Telescopio:Lontano,Lente; Magnete:Attrazione,Polo; Origami:Carta,Piega; Ghigliottina:Rivoluzione,Lama; Mosaico:Tessere,Ravenna; Caleidoscopio:Colori,Girare; Boomerang:Ritorno,Australia; Ventaglio:Aria,Mano; Matrioska:Dentro,Legno; Lucchetto:Ponte,Chiave",
+    eventi: "Karaoke:Microfono,Stonato; Scacchi:Re,Strategia; Sciopero:Treni,Protesta; Autostop:Pollice,Strada; Asta:Martelletto,Offerta; Caccia al tesoro:Mappa,Indizi; Trasferta:Tifosi,Pullman; Rimpatriata:Vecchi amici,Cena; Gemellaggio:Città,Scambio; Inaugurazione:Nastro,Forbici; Processo:Giuria,Prove; Cruciverba:Caselle,Definizioni; Escape room:Chiusi,Enigmi",
+    natura: "Eclissi:Ombra,Allineamento; Eco:Montagna,Ripetere; Miraggio:Deserto,Illusione; Cometa:Coda,Passaggio; Gravità:Mela,Cadere; Marea:Luna,Spiaggia; Aurora boreale:Nord,Verde; Fossile:Pietra,Antico; Valanga:Neve,Silenzio; Muschio:Nord,Presepe; Bonsai:Pazienza,Piccolo; Geyser:Getto,Islanda; Siccità:Crepe,Pioggia",
+    italia: "Burocrazia:Moduli,Coda; Galateo:Forchetta,Educazione; Superstizione:Gatto,Diciassette; Arlecchino:Colori,Servo; Risorgimento:Garibaldi,Unità; Rinascimento:Firenze,Arte; Pennichella:Divano,Pomeriggio; Bidet:Bagno,Stranieri; Mammone:Casa,Trent'anni; Condono:Casa,Perdono; Raccomandazione:Lavoro,Amico; Calcetto:Amici,Giovedì; Campanilismo:Paese,Rivalità",
+    concetti: "Nostalgia:Passato,Fotografia; Ipnosi:Pendolo,Sonno; Vertigine:Altezza,Girare; Amnesia:Vuoto,Ricordi; Anagramma:Lettere,Ordine; Fuso orario:Viaggio,Ore; Pettegolezzo:Orecchio,Vicini; Procrastinare:Domani,Scadenza; Sarcasmo:Tono,Contrario; Inflazione:Prezzi,Carrello; Utopia:Perfetto,Isola; Coincidenza:Caso,Stesso; Karma:Ritorno,Azioni"
+  }
+};
+
+const WORDS = {};
+for (const [d, cats] of Object.entries(RAW)) {
+  WORDS[d] = [];
+  for (const [c, str] of Object.entries(cats)) {
+    str.split(";").map(s => s.trim()).filter(Boolean).forEach(entry => {
+      const [w, hs] = entry.split(":");
+      const [h1, h2] = hs.split(",").map(s => s.trim());
+      WORDS[d].push({ w: w.trim(), h: [h1, h2], c });
+    });
+  }
+}
 
 const DIFF = {
   facile:    { label: "Facile",    desc: "Parole comuni, suggerimenti vicini" },
@@ -329,20 +368,22 @@ const DIFF = {
 
 /* ============================================================
    PUNTEGGIO (per round)
-   voto       → ogni cittadino che vota l'impostore
-   squadra    → bonus a tutti i cittadini se l'impostore è eliminato e NON indovina la parola
-   sopravvive → impostore non eliminato (anche in caso di pareggio)
-   inganno    → all'impostore, per ogni cittadino che ha votato un innocente
-   indovina   → impostore eliminato che indovina la parola segreta
-   Con suggerimenti più vaghi l'impostore rischia di più, quindi guadagna di più.
+   voto       → al cittadino, per ogni votazione in cui vota un impostore
+   squadra    → a ogni cittadino, per ogni impostore eliminato che NON indovina la parola
+   sopravvive → all'impostore non eliminato a fine round
+   inganno    → all'impostore, per ogni voto di un cittadino finito su un innocente (max ingannoMax)
+   indovina   → all'impostore eliminato che indovina la parola segreta
+   costo      → tolto all'impostore che sblocca il 2° suggerimento (mai sotto zero)
    ============================================================ */
 const SCORING = {
-  facile:    { voto: 2, squadra: 1, sopravvive: 4, inganno: 1, indovina: 2 },
-  medio:     { voto: 2, squadra: 1, sopravvive: 5, inganno: 1, indovina: 3 },
-  difficile: { voto: 2, squadra: 2, sopravvive: 6, inganno: 1, indovina: 4 }
+  facile:    { voto: 2, squadra: 1, sopravvive: 4, inganno: 1, ingannoMax: 3, indovina: 2, costo: 1 },
+  medio:     { voto: 2, squadra: 1, sopravvive: 5, inganno: 1, ingannoMax: 3, indovina: 3, costo: 1 },
+  difficile: { voto: 2, squadra: 2, sopravvive: 6, inganno: 1, ingannoMax: 3, indovina: 4, costo: 1 }
 };
+const TWO_IMPOSTORS_FROM = 7;
+const MAX_VOTES_TWO = 3;
 
-const STORE_KEY = "impostore-partita-v1";
+const STORE_KEY = "impostore-partita-v2";
 let state;
 let timerHandle = null;
 
@@ -353,10 +394,11 @@ function freshState(prev) {
     difficulty: prev?.difficulty ?? "medio",
     totalRounds: prev?.totalRounds ?? 5,
     timerSec: prev?.timerSec ?? 90,
+    cats: prev?.cats ?? Object.keys(CATS),
     scores: [],
     round: 0,
     used: { facile: [], medio: [], difficile: [] },
-    lastImpostor: -1,
+    lastImpostors: [],
     cur: null,
     history: [],
     error: ""
@@ -367,7 +409,7 @@ function save() {
   try {
     if (state.screen === "setup" || state.screen === "final") localStorage.removeItem(STORE_KEY);
     else localStorage.setItem(STORE_KEY, JSON.stringify(state));
-    localStorage.setItem(STORE_KEY + "-setup", JSON.stringify({ names: state.names, difficulty: state.difficulty, totalRounds: state.totalRounds, timerSec: state.timerSec }));
+    localStorage.setItem(STORE_KEY + "-setup", JSON.stringify({ names: state.names, difficulty: state.difficulty, totalRounds: state.totalRounds, timerSec: state.timerSec, cats: state.cats }));
   } catch (e) {}
 }
 function loadSaved() {
@@ -379,37 +421,69 @@ function loadSetup() {
 
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const rand = n => Math.floor(Math.random() * n);
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = rand(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 const players = () => state.names;
+const impostorCount = n => n >= TWO_IMPOSTORS_FROM ? 2 : 1;
+const catCount = (d, c) => WORDS[d].filter(x => x.c === c).length;
+const poolSize = () => WORDS[state.difficulty].filter(x => state.cats.includes(x.c)).length;
+const joinNames = arr => arr.map(i => players()[i]).map(esc).join(" e ");
 
 /* ---------- round setup ---------- */
 function pickWord() {
-  const deck = WORDS[state.difficulty];
-  let used = state.used[state.difficulty];
-  if (used.length >= deck.length) used = state.used[state.difficulty] = [];
-  const free = deck.map((_, i) => i).filter(i => !used.includes(i));
-  const idx = free[rand(free.length)];
-  used.push(idx);
-  const [word, h1, h2] = deck[idx];
-  return { word, hints: [h1, h2] };
+  const d = state.difficulty;
+  const pool = WORDS[d].filter(x => state.cats.includes(x.c));
+  let free = pool.filter(x => !state.used[d].includes(x.w));
+  if (!free.length) { state.used[d] = state.used[d].filter(w => !pool.some(x => x.w === w)); free = pool; }
+  const pick = free[rand(free.length)];
+  state.used[d].push(pick.w);
+  return pick;
+}
+
+function isImp(i) { return state.cur.impostors.includes(i); }
+function active() { return players().map((_, i) => i).filter(i => !state.cur.out.includes(i)); }
+
+function pickStarter() {
+  const cand = active().filter(i => !isImp(i));
+  return cand[rand(cand.length)];
 }
 
 function startRound() {
   const n = players().length;
-  const { word, hints } = pickWord();
-  let impostor = rand(n);
-  if (n > 3 && impostor === state.lastImpostor) impostor = (impostor + 1 + rand(n - 1)) % n;
-  state.lastImpostor = impostor;
-  // chi parla per primo: mai l'impostore, così non è svantaggiato
-  let starter = rand(n);
-  if (starter === impostor) starter = (starter + 1) % n;
+  const k = impostorCount(n);
+  // evita che gli stessi impostori escano due round di fila, se possibile
+  let pool = players().map((_, i) => i).filter(i => !state.lastImpostors.includes(i));
+  if (pool.length < k) pool = players().map((_, i) => i);
+  const impostors = shuffle(pool).slice(0, k).sort((a, b) => a - b);
+  state.lastImpostors = impostors;
+  const pick = pickWord();
   state.round += 1;
   state.cur = {
-    word, hints, impostor, starter,
-    revealIdx: 0, flipped: false,
-    votes: {}, eliminated: undefined, guessed: null,
+    word: pick.w, hints: pick.h, cat: pick.c, impostors,
+    maxTurns: k === 1 ? 1 : MAX_VOTES_TWO,
+    revealIdx: 0, flipped: false, hint2: {},
+    out: [], turns: [], turn: 1,
+    starter: 0, voter: 0, choosing: false, pick: null,
+    guesses: {},
     timeLeft: state.timerSec, running: false
   };
+  state.cur.starter = pickStarter();
   state.screen = "reveal";
+}
+
+function roundOver() {
+  const c = state.cur;
+  const act = active();
+  const impLeft = act.filter(isImp).length;
+  const citLeft = act.length - impLeft;
+  return impLeft === 0 || c.turns.length >= c.maxTurns || impLeft >= citLeft;
+}
+
+function nextDiscussion() {
+  const c = state.cur;
+  c.turn += 1;
+  c.starter = pickStarter();
+  c.voter = 0; c.choosing = false; c.pick = null;
+  c.timeLeft = state.timerSec;
 }
 
 /* ---------- scoring ---------- */
@@ -417,41 +491,73 @@ function scoreRound() {
   const c = state.cur;
   const cfg = SCORING[state.difficulty];
   const n = players().length;
-  const res = players().map(() => ({ pts: 0, why: [] }));
-  const caught = c.eliminated === c.impostor;
-  let fooled = 0;
+  const pts = Array(n).fill(0);
+  const why = players().map(() => []);
+  const goodVotes = Array(n).fill(0);
+  const fooled = {};
+  c.impostors.forEach(i => fooled[i] = 0);
+
+  c.turns.forEach((t, ti) => {
+    const outBefore = c.turns.slice(0, ti).map(x => x.eliminated).filter(x => x !== null);
+    const impsInGame = c.impostors.filter(i => !outBefore.includes(i));
+    for (const [vs, target] of Object.entries(t.votes)) {
+      const v = +vs;
+      if (isImp(v)) continue;
+      if (isImp(target)) goodVotes[v]++;
+      else impsInGame.forEach(i => fooled[i]++);
+    }
+  });
 
   for (let v = 0; v < n; v++) {
-    if (v === c.impostor) continue;
-    if (c.votes[v] === c.impostor) { res[v].pts += cfg.voto; res[v].why.push(`+${cfg.voto} voto sull'impostore`); }
-    else fooled++;
+    if (goodVotes[v]) {
+      pts[v] += goodVotes[v] * cfg.voto;
+      why[v].push(`+${goodVotes[v] * cfg.voto} ${goodVotes[v] > 1 ? `voti sull'impostore (${goodVotes[v]})` : "voto sull'impostore"}`);
+    }
   }
-  const imp = res[c.impostor];
-  if (!caught) { imp.pts += cfg.sopravvive; imp.why.push(`+${cfg.sopravvive} non scoperto`); }
-  else if (c.guessed) { imp.pts += cfg.indovina; imp.why.push(`+${cfg.indovina} ha indovinato la parola`); }
-  else {
-    for (let v = 0; v < n; v++) if (v !== c.impostor) { res[v].pts += cfg.squadra; res[v].why.push(`+${cfg.squadra} impostore smascherato`); }
+
+  let caughtClean = 0;
+  c.impostors.forEach(i => {
+    if (!c.out.includes(i)) { pts[i] += cfg.sopravvive; why[i].push(`+${cfg.sopravvive} non scoperto`); }
+    else if (c.guesses[i]) { pts[i] += cfg.indovina; why[i].push(`+${cfg.indovina} ha indovinato la parola`); }
+    else caughtClean++;
+  });
+  if (caughtClean) {
+    const bonus = caughtClean * cfg.squadra;
+    for (let v = 0; v < n; v++) if (!isImp(v)) { pts[v] += bonus; why[v].push(`+${bonus} ${caughtClean > 1 ? "impostori smascherati" : "impostore smascherato"}`); }
   }
-  if (fooled > 0) { imp.pts += fooled * cfg.inganno; imp.why.push(`+${fooled * cfg.inganno} ingannati (${fooled})`); }
-  return res;
+
+  c.impostors.forEach(i => {
+    if (fooled[i]) {
+      const g = Math.min(fooled[i] * cfg.inganno, cfg.ingannoMax);
+      pts[i] += g;
+      why[i].push(`+${g} ingannati (${fooled[i]}${fooled[i] * cfg.inganno > cfg.ingannoMax ? ", max " + cfg.ingannoMax : ""})`);
+    }
+    if (c.hint2[i]) {
+      const cost = Math.min(cfg.costo, pts[i]);
+      pts[i] -= cost;
+      why[i].push(cost ? `−${cost} secondo suggerimento` : "secondo suggerimento (niente da scalare)");
+    }
+  });
+
+  return { pts, why };
 }
 
 function finishRound() {
-  const res = scoreRound();
-  res.forEach((r, i) => state.scores[i] += r.pts);
+  const { pts, why } = scoreRound();
+  pts.forEach((p, i) => state.scores[i] += p);
   const c = state.cur;
   state.history.push({
-    round: state.round, word: c.word, hints: c.hints, impostor: c.impostor,
-    eliminated: c.eliminated, guessed: c.guessed, deltas: res.map(r => r.pts), why: res.map(r => r.why)
+    round: state.round, word: c.word, hints: c.hints, cat: c.cat, impostors: c.impostors,
+    out: c.out.slice(), guesses: { ...c.guesses }, hint2: { ...c.hint2 }, deltas: pts, why
   });
   state.screen = "round";
 }
 
 /* ---------- vote tally ---------- */
-function tally() {
+function tally(turn) {
   const n = players().length;
   const counts = Array(n).fill(0);
-  Object.values(state.cur.votes).forEach(t => counts[t]++);
+  Object.values(turn.votes).forEach(t => counts[t]++);
   const max = Math.max(...counts);
   const top = counts.map((c, i) => c === max ? i : -1).filter(i => i >= 0);
   return { counts, max, eliminated: top.length === 1 ? top[0] : null };
@@ -478,40 +584,44 @@ const fmt = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
    RENDER
    ============================================================ */
 function topbar() {
-  return `<div class="topbar"><span>Round ${state.round}/${state.totalRounds} · ${DIFF[state.difficulty].label}</span><button data-a="quit">Esci dalla partita</button></div>`;
+  const c = state.cur;
+  const k = c ? c.impostors.length : 1;
+  return `<div class="topbar"><span>Round ${state.round}/${state.totalRounds} · ${DIFF[state.difficulty].label}${k > 1 ? " · 2 imp." : ""}</span><button data-a="quit">Esci</button></div>`;
 }
 
 function rulesHTML() {
   const rows = [
-    ["Cittadino vota l'impostore", "voto"],
-    ["Impostore eliminato (bonus a ogni cittadino)", "squadra"],
-    ["Impostore non scoperto", "sopravvive"],
-    ["Impostore: per ogni cittadino ingannato", "inganno"],
-    ["Impostore eliminato ma indovina la parola", "indovina"]
+    ["Cittadino: per ogni votazione in cui vota un impostore", d => `+${SCORING[d].voto}`],
+    ["Cittadini: bonus a testa per ogni impostore eliminato", d => `+${SCORING[d].squadra}`],
+    ["Impostore non scoperto a fine round", d => `+${SCORING[d].sopravvive}`],
+    ["Impostore: per ogni voto di un cittadino su un innocente", d => `+${SCORING[d].inganno} (max ${SCORING[d].ingannoMax})`],
+    ["Impostore eliminato che indovina la parola", d => `+${SCORING[d].indovina}`],
+    ["Impostore che sblocca il 2° suggerimento", d => `−${SCORING[d].costo}`]
   ];
   return `
   <details class="rules" ${state.screen === "setup" && !state.rulesClosed ? "open" : ""} id="rules">
     <summary>Come si gioca</summary>
     <div class="rules-body">
-      <p>Da 3 a 12 giocatori, un solo telefono. Tutti ricevono la stessa <b>parola segreta</b>, tranne uno: <b>l'impostore</b>, che non la conosce ma riceve <b>2 suggerimenti</b> per bluffare.</p>
+      <p>Da 3 a 12 giocatori, un solo telefono. Tutti ricevono la stessa <b>parola segreta</b>, tranne <b>l'impostore</b>: non la conosce, ma ha <b>2 suggerimenti</b> per bluffare. Con ${TWO_IMPOSTORS_FROM} o più giocatori gli impostori sono <b>due</b>, e nessuno dei due sa chi è l'altro.</p>
       <ol>
-        <li><b>Distribuzione.</b> Passatevi il telefono. Ognuno tocca la carta, legge in segreto e la copre prima di passarla.</li>
+        <li><b>Distribuzione.</b> Passatevi il telefono. Ognuno tocca la carta, legge in segreto e la copre prima di passarla. L'impostore vede subito il 1° suggerimento; il 2° lo può sbloccare, ma gli costa 1 punto.</li>
         <li><b>Discussione.</b> A turno, partendo dal giocatore indicato, ognuno dice <b>una sola parola</b> collegata alla parola segreta. Fate due giri. Troppo precisi aiutate l'impostore, troppo vaghi sembrate voi l'impostore.</li>
-        <li><b>Voto.</b> Ognuno indica chi secondo lui è l'impostore (non si può votare sé stessi). Chi prende più voti è eliminato. In caso di <b>pareggio</b> nessuno è eliminato e l'impostore si salva.</li>
-        <li><b>Ultima chance.</b> Se l'impostore viene eliminato, può provare a dire la parola segreta ad alta voce. Se indovina, ruba punti.</li>
+        <li><b>Voto segreto.</b> Il telefono gira ancora: ognuno sceglie di nascosto chi eliminare (non sé stesso). Chi prende più voti esce. In caso di <b>pareggio</b> non esce nessuno.</li>
+        <li><b>Con 2 impostori</b> si continua con un nuovo giro di parole e un nuovo voto, fino a ${MAX_VOTES_TWO} votazioni. Il round finisce prima se escono entrambi gli impostori, o se gli impostori rimasti sono tanti quanti i cittadini.</li>
+        <li><b>Ultima chance.</b> A fine round ogni impostore eliminato prova a dire la parola segreta ad alta voce. Se indovina, ruba punti ai cittadini.</li>
         <li><b>Fine.</b> Dopo l'ultimo round vince chi ha più punti.</li>
       </ol>
-      <p class="ex">Esempio: la parola è <i>Pizza</i>. L'impostore vede i suggerimenti <i>Forno</i> e <i>Napoli</i>, e al suo turno dice "Margherita".</p>
+      <p class="ex">Esempio: la parola è <i>Pizza</i>. L'impostore vede <i>Forno</i>, sblocca anche <i>Napoli</i>, e al suo turno dice "Margherita".</p>
       <h3>Punteggio</h3>
       <div class="scroll-x">
         <table class="score-table">
           <thead><tr><th>Situazione</th><th class="pts">Facile</th><th class="pts">Medio</th><th class="pts">Difficile</th></tr></thead>
           <tbody>
-            ${rows.map(([l, k]) => `<tr><td>${l}</td>${["facile","medio","difficile"].map(d => `<td class="pts">+${SCORING[d][k]}</td>`).join("")}</tr>`).join("")}
+            ${rows.map(([l, f]) => `<tr><td>${l}</td>${["facile","medio","difficile"].map(d => `<td class="pts">${f(d)}</td>`).join("")}</tr>`).join("")}
           </tbody>
         </table>
       </div>
-      <p class="ex">Il voto dell'impostore non conta per i punti. Un innocente eliminato per errore non perde punti. Più alto il livello, più vaghi sono i suggerimenti: per questo l'impostore guadagna di più se la scampa.</p>
+      <p class="ex">Il voto degli impostori conta per eliminare qualcuno, ma non dà punti. Un innocente eliminato per errore non perde punti. Il costo del 2° suggerimento non porta mai il round sotto zero. Più alto il livello, più vaghi sono i suggerimenti: per questo l'impostore guadagna di più se la scampa.</p>
     </div>
   </details>`;
 }
@@ -519,11 +629,13 @@ function rulesHTML() {
 function renderSetup() {
   const saved = loadSaved();
   const names = state.names;
+  const k = impostorCount(names.length);
+  const d = state.difficulty;
   return `
   <header class="hero">
     <span class="eyebrow">Gioco di parole e bluff</span>
     <h1>L'Impo<span>stor</span>e</h1>
-    <p class="muted">Tutti conoscono la parola. Uno solo finge.</p>
+    <p class="muted">Tutti conoscono la parola. ${k > 1 ? "Due fingono." : "Uno solo finge."}</p>
   </header>
 
   ${saved && saved.screen !== "setup" ? `
@@ -543,14 +655,26 @@ function renderSetup() {
       </div>`).join("")}
     </div>
     ${names.length < 12 ? `<button class="btn ghost small" data-a="add" style="align-self:flex-start">+ Aggiungi giocatore</button>` : ""}
+    <p class="info">Con ${names.length} giocatori: <b>${k} impostor${k > 1 ? "i" : "e"}</b>${k > 1 ? `, fino a ${MAX_VOTES_TWO} votazioni per round` : `. Dai ${TWO_IMPOSTORS_FROM} giocatori diventano 2`}.</p>
   </section>
 
   <section class="panel">
     <h3>Difficoltà</h3>
     <div class="seg diff">
-      ${Object.entries(DIFF).map(([k, d]) => `
-      <button data-a="diff" data-v="${k}" aria-pressed="${state.difficulty === k}"><b>${d.label}</b><small>${d.desc}</small></button>`).join("")}
+      ${Object.entries(DIFF).map(([key, dd]) => `
+      <button data-a="diff" data-v="${key}" aria-pressed="${d === key}"><b>${dd.label}</b><small>${dd.desc}</small></button>`).join("")}
     </div>
+  </section>
+
+  <section class="panel">
+    <div class="row" style="justify-content:space-between"><h3>Categorie</h3><button class="btn ghost small" data-a="cats-all">${state.cats.length === Object.keys(CATS).length ? "Nessuna" : "Tutte"}</button></div>
+    <div class="chips">
+      ${Object.entries(CATS).map(([c, label]) => {
+        const cnt = catCount(d, c);
+        return `<button data-a="cat" data-v="${c}" aria-pressed="${state.cats.includes(c) && cnt > 0}" ${cnt ? "" : "disabled title=\"Non disponibile a questo livello\""}>${label}<small>${cnt}</small></button>`;
+      }).join("")}
+    </div>
+    <p class="info"><b>${poolSize()}</b> parole disponibili a livello ${DIFF[d].label.toLowerCase()}.${catCount(d, "concetti") ? "" : " I Concetti ci sono solo a Medio e Difficile."}</p>
   </section>
 
   <section class="panel">
@@ -573,51 +697,65 @@ function renderSetup() {
 function renderReveal() {
   const c = state.cur;
   const n = players().length;
-  const name = players()[c.revealIdx];
-  const isImp = c.revealIdx === c.impostor;
-  const front = isImp
+  const me = c.revealIdx;
+  const name = players()[me];
+  const imp = isImp(me);
+  const two = c.impostors.length > 1;
+  const cost = SCORING[state.difficulty].costo;
+  const front = imp
     ? `<div class="face front imp">
          <span class="lbl">${esc(name)}, tu sei</span>
-         <div class="word">L'impostore</div>
-         <p style="opacity:.8;font-size:.9rem">Non conosci la parola. Usa questi suggerimenti per bluffare:</p>
+         <div class="word">${two ? "Un impostore" : "L'impostore"}</div>
+         <p style="opacity:.8;font-size:.9rem">${two ? "Siete in due e non sai chi è l'altro. " : ""}Non conosci la parola: bluffa con i suggerimenti.</p>
          <div class="hint-list">
            <div class="hint"><span>Suggerimento 1</span><b>${esc(c.hints[0])}</b></div>
-           <div class="hint"><span>Suggerimento 2</span><b>${esc(c.hints[1])}</b></div>
+           ${c.hint2[me]
+             ? `<div class="hint"><span>Suggerimento 2</span><b>${esc(c.hints[1])}</b></div>`
+             : `<div class="hint locked"><span>Suggerimento 2</span><button class="unlock" data-a="unlock">Sblocca · −${cost} punto</button></div>`}
          </div>
        </div>`
     : `<div class="face front">
          <span class="lbl">${esc(name)}, la parola segreta è</span>
          <div class="word">${esc(c.word)}</div>
-         <p style="color:var(--ink-soft);font-size:.9rem">Non dirla a nessuno. Uno di voi non la conosce.</p>
+         <p style="color:var(--ink-soft);font-size:.9rem">Non dirla a nessuno. ${two ? "Due di voi non la conoscono." : "Uno di voi non la conosce."}</p>
        </div>`;
   return `
   ${topbar()}
   <div class="pass">
     <span class="eyebrow">Passa il telefono a</span>
     <h2>${esc(name)}</h2>
-    <div class="progress" aria-label="Giocatore ${c.revealIdx + 1} di ${n}">${players().map((_, i) => `<i class="${i < c.revealIdx ? "done" : ""}"></i>`).join("")}</div>
+    <div class="progress" aria-label="Giocatore ${me + 1} di ${n}">${players().map((_, i) => `<i class="${i < me ? "done" : ""}"></i>`).join("")}</div>
   </div>
   <div class="table-card">
-    <button class="flipper ${c.flipped ? "on" : ""}" data-a="flip" aria-label="${c.flipped ? "Carta scoperta" : "Tocca per scoprire la tua carta"}">
+    <div class="flipper ${c.flipped ? "on" : ""}" data-a="flip" role="button" tabindex="0" style="cursor:pointer" aria-label="${c.flipped ? "Carta scoperta" : "Tocca per scoprire la tua carta"}">
       <div class="face back"><div class="mark">?</div><b style="font-family:var(--font-display);font-size:1.3rem">Tocca per scoprire</b><span style="opacity:.85;font-size:.9rem">Solo ${esc(name)} deve guardare</span></div>
       ${front}
-    </button>
+    </div>
   </div>
-  <button class="btn block" data-a="hide" ${c.flipped ? "" : "disabled"}>${c.revealIdx === n - 1 ? "Ho visto, iniziamo" : "Ho visto, copri e passa"}</button>`;
+  <button class="btn block" data-a="hide" ${c.flipped ? "" : "disabled"}>${me === n - 1 ? "Ho visto, iniziamo" : "Ho visto, copri e passa"}</button>`;
+}
+
+function outList() {
+  const c = state.cur;
+  if (!c.out.length) return "";
+  return `<div class="stack" style="gap:6px"><span class="eyebrow" style="color:var(--text-soft)">Eliminati</span><div class="out-list">${c.out.map(i => `<span>${esc(players()[i])}</span>`).join("")}</div></div>`;
 }
 
 function renderDiscuss() {
   const c = state.cur;
-  const n = players().length;
-  const order = Array.from({ length: n }, (_, k) => (c.starter + k) % n);
+  const act = active();
+  const s = act.indexOf(c.starter);
+  const order = act.slice(s).concat(act.slice(0, s));
+  const first = c.turn === 1;
   return `
   ${topbar()}
   <header class="hero">
-    <span class="eyebrow">Discussione</span>
-    <h2>Una parola a testa, due giri</h2>
-    <p class="muted">Inizia <b style="color:var(--text)">${esc(players()[c.starter])}</b>, poi si prosegue in quest'ordine.</p>
+    <span class="eyebrow">Discussione${c.maxTurns > 1 ? ` · votazione ${c.turn} di ${c.maxTurns}` : ""}</span>
+    <h2>${first ? "Una parola a testa, due giri" : "Un altro giro di parole"}</h2>
+    <p class="muted">Inizia <b style="color:var(--text)">${esc(players()[c.starter])}</b>, poi si prosegue in quest'ordine.${first ? "" : " Ognuno dice una parola nuova."}</p>
   </header>
   <ol class="order">${order.map((i, k) => `<li class="${k === 0 ? "first" : ""}">${esc(players()[i])}</li>`).join("")}</ol>
+  ${outList()}
   ${state.timerSec ? `
   <section class="panel" style="align-items:center">
     <div class="timer ${c.timeLeft === 0 ? "zero" : ""}" id="timer" aria-live="off">${fmt(c.timeLeft)}</div>
@@ -626,73 +764,106 @@ function renderDiscuss() {
     </div>
     ${c.timeLeft === 0 ? `<p class="muted">Tempo scaduto: andate al voto.</p>` : ""}
   </section>` : ""}
-  <button class="btn block" data-a="to-vote">Andiamo al voto</button>`;
+  <button class="btn block" data-a="to-vote">Andiamo al voto segreto</button>`;
 }
 
 function renderVote() {
   const c = state.cur;
-  const n = players().length;
-  const done = Object.keys(c.votes).length;
+  const act = active();
+  const voter = act[c.voter];
+  const name = players()[voter];
+  if (!c.choosing) {
+    return `
+    ${topbar()}
+    <div class="pass">
+      <span class="eyebrow">Voto segreto · ${c.voter + 1} di ${act.length}</span>
+      <div class="progress">${act.map((_, k) => `<i class="${k < c.voter ? "done" : ""}"></i>`).join("")}</div>
+    </div>
+    <div class="secret-card">
+      <span class="eyebrow">Passa il telefono a</span>
+      <h2 style="font-size:2.2rem">${esc(name)}</h2>
+      <p class="muted">Gli altri non guardano lo schermo.</p>
+    </div>
+    <button class="btn block" data-a="vote-open">Sono ${esc(name)}, voglio votare</button>`;
+  }
+  const others = act.filter(i => i !== voter);
   return `
   ${topbar()}
   <header class="hero">
-    <span class="eyebrow">Votazione</span>
-    <h2>Chi è l'impostore?</h2>
-    <p class="muted">Contate fino a tre e indicate tutti insieme, poi segnate qui i voti. Anche l'impostore vota.</p>
+    <span class="eyebrow">Voto segreto di ${esc(name)}</span>
+    <h2>Chi vuoi eliminare?</h2>
+    <p class="muted">Tocca un nome e conferma. Il voto resta nascosto fino alla fine.</p>
   </header>
-  <div class="stack">
-    ${players().map((name, v) => `
-    <div class="vote-row">
-      <label for="v${v}">${esc(name)} vota</label>
-      <select id="v${v}" data-vote="${v}" class="${c.votes[v] !== undefined ? "set" : ""}">
-        <option value="">— scegli —</option>
-        ${players().map((t, i) => i === v ? "" : `<option value="${i}" ${c.votes[v] === i ? "selected" : ""}>${esc(t)}</option>`).join("")}
-      </select>
-    </div>`).join("")}
+  <div class="choices">
+    ${others.map(i => `<button data-a="vote-pick" data-v="${i}" aria-pressed="${c.pick === i}">${esc(players()[i])}</button>`).join("")}
   </div>
-  <button class="btn block" data-a="reveal-vote" ${done < n ? "disabled" : ""}>${done < n ? `Mancano ${n - done} voti` : "Rivela il risultato"}</button>`;
+  <button class="btn block red" data-a="vote-confirm" ${c.pick === null ? "disabled" : ""}>${c.pick === null ? "Scegli un nome" : `Conferma: elimina ${esc(players()[c.pick])}`}</button>`;
 }
 
 function renderResult() {
   const c = state.cur;
-  const { counts, max } = tally();
-  const caught = c.eliminated === c.impostor;
-  const elName = c.eliminated === null ? null : players()[c.eliminated];
-  const impName = players()[c.impostor];
+  const t = c.turns[c.turns.length - 1];
+  const { counts, max } = tally(t);
+  const over = roundOver();
+  const el = t.eliminated;
+  const caughtImps = c.impostors.filter(i => c.out.includes(i));
+  const pendingGuess = over && caughtImps.some(i => c.guesses[i] === undefined);
+  const voters = Object.keys(t.votes).map(Number);
+
   let verdict;
-  if (c.eliminated === null) {
-    verdict = `<div class="verdict lose"><span class="eyebrow">Pareggio</span><h3>Nessuno è eliminato</h3><p>L'impostore era <b>${esc(impName)}</b> e si salva. La parola era <b>${esc(c.word)}</b>.</p></div>`;
-  } else if (!caught) {
-    verdict = `<div class="verdict lose"><span class="eyebrow">Errore</span><h3>${esc(elName)} era innocente</h3><p>L'impostore era <b>${esc(impName)}</b>. La parola era <b>${esc(c.word)}</b>.</p></div>`;
-  } else if (c.guessed === null) {
-    verdict = `<div class="verdict win"><span class="eyebrow">Smascherato</span><h3>${esc(impName)} era l'impostore</h3>
-      <p>Ultima chance: ${esc(impName)} dice ad alta voce quale pensa sia la parola segreta. Gli altri giudicano.</p>
-      <div class="row" style="margin-top:8px"><button class="btn red small" data-a="guess" data-v="1">Ha indovinato</button><button class="btn small" data-a="guess" data-v="0">Ha sbagliato</button></div></div>`;
+  if (el === null) {
+    verdict = `<div class="verdict lose"><span class="eyebrow">Pareggio</span><h3>Nessuno è eliminato</h3></div>`;
+  } else if (isImp(el)) {
+    verdict = `<div class="verdict win"><span class="eyebrow">Smascherato</span><h3>${esc(players()[el])} era ${c.impostors.length > 1 ? "un impostore" : "l'impostore"}</h3></div>`;
   } else {
-    verdict = c.guessed
-      ? `<div class="verdict lose"><span class="eyebrow">Colpo di scena</span><h3>${esc(impName)} ha indovinato</h3><p>La parola era <b>${esc(c.word)}</b>. L'impostore ruba i punti della squadra.</p></div>`
-      : `<div class="verdict win"><span class="eyebrow">Vittoria dei cittadini</span><h3>${esc(impName)} non ha indovinato</h3><p>La parola era <b>${esc(c.word)}</b>.</p></div>`;
+    verdict = `<div class="verdict lose"><span class="eyebrow">Errore</span><h3>${esc(players()[el])} era innocente</h3></div>`;
   }
-  const ready = !(caught && c.guessed === null);
+
+  let after = "";
+  if (!over) {
+    const left = c.impostors.filter(i => !c.out.includes(i)).length;
+    after = `<p class="muted">${left > 1 ? "Ci sono ancora 2 impostori" : "C'è ancora un impostore"} in gioco. Si continua: votazione ${c.turns.length + 1} di ${c.maxTurns}.</p>
+      <button class="btn block" data-a="next-turn">Nuovo giro di parole</button>`;
+  } else {
+    const survivors = c.impostors.filter(i => !c.out.includes(i));
+    const guessBlocks = caughtImps.map(i => {
+      const g = c.guesses[i];
+      return `<div class="guess-row">
+        <b>${esc(players()[i])}, ultima chance: di' ad alta voce la parola segreta.</b>
+        ${g === undefined
+          ? `<div class="row"><button class="btn red small" data-a="guess" data-i="${i}" data-v="1">Ha indovinato</button><button class="btn small" data-a="guess" data-i="${i}" data-v="0">Ha sbagliato</button></div>`
+          : `<span class="${g ? "" : "muted"}">${g ? "Ha indovinato e ruba i punti." : "Ha sbagliato."}</span>`}
+      </div>`;
+    }).join("");
+    after = `
+      <section class="panel">
+        <span class="eyebrow">Fine round</span>
+        ${caughtImps.length ? guessBlocks : ""}
+        ${pendingGuess ? "" : `
+        <p>La parola era <b>${esc(c.word)}</b> <span class="muted">(${CATS[c.cat]})</span>.</p>
+        <p>${c.impostors.length > 1 ? "Impostori" : "Impostore"}: <b>${joinNames(c.impostors)}</b>${survivors.length ? ` · non scopert${survivors.length > 1 ? "i" : "o"}: <b>${joinNames(survivors)}</b>` : ""}.</p>
+        <p class="muted">Suggerimenti: <b style="color:var(--text)">${esc(c.hints[0])}</b> e <b style="color:var(--text)">${esc(c.hints[1])}</b>${c.impostors.some(i => c.hint2[i]) ? ` · il 2° è stato sbloccato da ${joinNames(c.impostors.filter(i => c.hint2[i]))}` : ""}.</p>
+        <button class="btn block" data-a="score">Calcola i punti</button>`}
+      </section>`;
+  }
+
   return `
   ${topbar()}
-  <header class="hero"><span class="eyebrow">Risultato del voto</span><h2>I voti</h2></header>
+  <header class="hero"><span class="eyebrow">Risultato${c.maxTurns > 1 ? ` · votazione ${c.turns.length} di ${c.maxTurns}` : ""}</span><h2>I voti</h2></header>
   <div class="tally">
-    ${players().map((p, i) => `
+    ${players().map((p, i) => voters.includes(i) ? `
     <div class="bar ${counts[i] === max && max > 0 ? "top" : ""}">
-      <span class="name">${esc(p)}${ready && i === c.impostor ? ' <span class="tag">imp</span>' : ""}</span>
+      <span class="name">${esc(p)}</span>
       <div class="track"><div class="fill" style="width:${max ? (counts[i] / max) * 100 : 0}%"></div></div>
       <span class="n">${counts[i]}</span>
-    </div>`).join("")}
+    </div>` : "").join("")}
   </div>
   ${verdict}
-  ${ready ? `<p class="muted">Suggerimenti dell'impostore: <b style="color:var(--text)">${esc(c.hints[0])}</b> e <b style="color:var(--text)">${esc(c.hints[1])}</b>.</p>
-  <button class="btn block" data-a="score">Calcola i punti</button>` : ""}`;
+  ${after}`;
 }
 
-function standingsTable(deltas, why) {
+function standingsTable(deltas, why, imps) {
   const order = players().map((_, i) => i).sort((a, b) => state.scores[b] - state.scores[a]);
-  const imp = state.screen === "round" ? state.cur.impostor : -1;
   return `
   <div class="scroll-x">
   <table class="score-table">
@@ -701,7 +872,7 @@ function standingsTable(deltas, why) {
       ${order.map((i, k) => `
       <tr>
         <td class="pts" style="text-align:left">${k + 1}</td>
-        <td>${esc(players()[i])}${i === imp ? '<span class="tag">imp</span>' : ""}${why && why[i].length ? `<span class="why">${why[i].map(esc).join(" · ")}</span>` : ""}</td>
+        <td>${esc(players()[i])}${imps && imps.includes(i) ? '<span class="tag">imp</span>' : ""}${why && why[i].length ? `<span class="why">${why[i].map(esc).join(" · ")}</span>` : ""}</td>
         ${deltas ? `<td class="pts delta ${deltas[i] > 0 ? "pos" : "zero"}">${deltas[i] > 0 ? "+" : ""}${deltas[i]}</td>` : ""}
         <td class="pts"><b>${state.scores[i]}</b></td>
       </tr>`).join("")}
@@ -718,10 +889,22 @@ function renderRound() {
   <header class="hero">
     <span class="eyebrow">Fine round ${state.round}</span>
     <h2>Punti del round</h2>
-    <p class="muted">Parola: <b style="color:var(--text)">${esc(h.word)}</b> · Impostore: <b style="color:var(--text)">${esc(players()[h.impostor])}</b></p>
+    <p class="muted">Parola: <b style="color:var(--text)">${esc(h.word)}</b> · ${h.impostors.length > 1 ? "Impostori" : "Impostore"}: <b style="color:var(--text)">${joinNames(h.impostors)}</b></p>
   </header>
-  ${standingsTable(h.deltas, h.why)}
+  ${standingsTable(h.deltas, h.why, h.impostors)}
   <button class="btn block" data-a="${last ? "final" : "next"}">${last ? "Classifica finale" : `Round ${state.round + 1}`}</button>`;
+}
+
+function outcome(h) {
+  const caught = h.impostors.filter(i => h.out.includes(i));
+  const guessed = caught.filter(i => h.guesses[i]);
+  if (h.impostors.length === 1) {
+    if (!caught.length) return "Non scoperto";
+    return guessed.length ? "Scoperto, ma indovina" : "Scoperto";
+  }
+  let s = `Scoperti ${caught.length} su 2`;
+  if (guessed.length) s += `, ${guessed.length} indovina`;
+  return s;
 }
 
 function renderFinal() {
@@ -741,22 +924,22 @@ function renderFinal() {
   </div>
   <section class="panel">
     <h3>Classifica</h3>
-    ${standingsTable(null, null)}
+    ${standingsTable(null, null, null)}
   </section>
   <section class="panel">
     <h3>Round per round</h3>
     <div class="scroll-x">
     <table class="score-table">
-      <thead><tr><th>R</th><th>Parola</th><th>Impostore</th><th>Esito</th></tr></thead>
+      <thead><tr><th>R</th><th>Parola</th><th>Impostori</th><th>Esito</th></tr></thead>
       <tbody>
-        ${state.history.map(h => `<tr><td class="pts" style="text-align:left">${h.round}</td><td>${esc(h.word)}</td><td>${esc(players()[h.impostor])}</td><td>${h.eliminated === h.impostor ? (h.guessed ? "Scoperto, ma indovina" : "Scoperto") : h.eliminated === null ? "Salvo (pareggio)" : "Non scoperto"}</td></tr>`).join("")}
+        ${state.history.map(h => `<tr><td class="pts" style="text-align:left">${h.round}</td><td>${esc(h.word)}</td><td>${joinNames(h.impostors)}</td><td>${outcome(h)}</td></tr>`).join("")}
       </tbody>
     </table>
     </div>
   </section>
   <div class="stack">
     <button class="btn block" data-a="again">Rivincita con gli stessi giocatori</button>
-    <button class="btn ghost block" data-a="setup">Cambia giocatori o difficoltà</button>
+    <button class="btn ghost block" data-a="setup">Cambia giocatori o impostazioni</button>
   </div>`;
 }
 
@@ -775,25 +958,24 @@ function render() {
    ============================================================ */
 function go(screen) { state.screen = screen; render(); window.scrollTo({ top: 0 }); }
 
+function resetMatch() {
+  state.scores = players().map(() => 0);
+  state.round = 0; state.history = []; state.lastImpostors = []; state.error = "";
+}
+
 document.addEventListener("input", e => {
   const t = e.target;
   if (t.matches(".player-row input")) { state.names[+t.dataset.i] = t.value; state.error = ""; save(); }
 });
 
-document.addEventListener("change", e => {
-  const t = e.target;
-  if (t.matches("select[data-vote]")) {
-    const v = +t.dataset.vote;
-    if (t.value === "") delete state.cur.votes[v]; else state.cur.votes[v] = +t.value;
-    render();
-    const again = document.getElementById(`v${v}`);
-    if (again) again.focus();
-  }
-});
-
 document.addEventListener("toggle", e => {
   if (e.target.id === "rules") state.rulesClosed = !e.target.open;
 }, true);
+
+document.addEventListener("keydown", e => {
+  const f = e.target.closest?.('[data-a="flip"]');
+  if (f && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); f.click(); }
+});
 
 document.addEventListener("click", e => {
   const b = e.target.closest("[data-a]");
@@ -804,21 +986,30 @@ document.addEventListener("click", e => {
     case "add": state.names.push(""); render(); document.getElementById(`p${state.names.length - 1}`)?.focus(); break;
     case "del": state.names.splice(+b.dataset.i, 1); render(); break;
     case "diff": state.difficulty = b.dataset.v; render(); break;
+    case "cat": {
+      const v = b.dataset.v;
+      state.cats = state.cats.includes(v) ? state.cats.filter(x => x !== v) : state.cats.concat(v);
+      state.error = ""; render(); break;
+    }
+    case "cats-all": state.cats = state.cats.length === Object.keys(CATS).length ? [] : Object.keys(CATS); render(); break;
     case "rounds": state.totalRounds = +b.dataset.v; render(); break;
     case "timer": state.timerSec = +b.dataset.v; render(); break;
     case "start": {
       const names = state.names.map(n => n.trim());
-      if (names.some(n => !n)) { state.error = "Dai un nome a ogni giocatore."; render(); return; }
       const lower = names.map(n => n.toLowerCase());
-      if (new Set(lower).size !== lower.length) { state.error = "Ogni giocatore deve avere un nome diverso."; render(); return; }
-      if (names.length < 3) { state.error = "Servono almeno 3 giocatori."; render(); return; }
+      if (names.some(n => !n)) state.error = "Dai un nome a ogni giocatore.";
+      else if (new Set(lower).size !== lower.length) state.error = "Ogni giocatore deve avere un nome diverso.";
+      else if (names.length < 3) state.error = "Servono almeno 3 giocatori.";
+      else if (poolSize() < 5) state.error = "Scegli più categorie: servono almeno 5 parole a questo livello.";
+      else state.error = "";
+      if (state.error) { render(); return; }
       state.names = names;
-      state.scores = names.map(() => 0);
-      state.round = 0; state.history = []; state.error = ""; state.lastImpostor = -1;
+      resetMatch();
       startRound(); go("reveal"); break;
     }
     case "resume": { const s = loadSaved(); if (s) { state = s; stopTimer(); render(); } break; }
     case "flip": if (!c.flipped) { c.flipped = true; render(); } break;
+    case "unlock": e.stopPropagation(); c.hint2[c.revealIdx] = true; render(); break;
     case "hide":
       c.flipped = false;
       if (c.revealIdx < players().length - 1) {
@@ -828,27 +1019,43 @@ document.addEventListener("click", e => {
       } else { go("discuss"); }
       break;
     case "timer-toggle": toggleTimer(); break;
-    case "to-vote": stopTimer(); go("vote"); break;
-    case "reveal-vote": c.eliminated = tally().eliminated; go("result"); break;
-    case "guess": c.guessed = b.dataset.v === "1"; render(); break;
+    case "to-vote":
+      stopTimer();
+      c.voter = 0; c.choosing = false; c.pick = null;
+      c.turns.push({ votes: {}, eliminated: null });
+      go("vote"); break;
+    case "vote-open": c.choosing = true; c.pick = null; go("vote"); break;
+    case "vote-pick": c.pick = +b.dataset.v; render(); break;
+    case "vote-confirm": {
+      const act = active();
+      const t = c.turns[c.turns.length - 1];
+      t.votes[act[c.voter]] = c.pick;
+      c.pick = null; c.choosing = false; c.voter += 1;
+      if (c.voter >= act.length) {
+        t.eliminated = tally(t).eliminated;
+        if (t.eliminated !== null) c.out.push(t.eliminated);
+        go("result");
+      } else go("vote");
+      break;
+    }
+    case "next-turn": nextDiscussion(); go("discuss"); break;
+    case "guess": c.guesses[+b.dataset.i] = b.dataset.v === "1"; render(); break;
     case "score": finishRound(); go("round"); break;
     case "next": startRound(); go("reveal"); break;
     case "final": go("final"); break;
-    case "again": {
-      state.scores = players().map(() => 0); state.round = 0; state.history = []; state.lastImpostor = -1;
-      startRound(); go("reveal"); break;
-    }
+    case "again": resetMatch(); startRound(); go("reveal"); break;
     case "setup": state = freshState(state); go("setup"); break;
     case "quit":
       if (b.dataset.confirm === "1") { stopTimer(); state = freshState(state); go("setup"); }
-      else { b.dataset.confirm = "1"; b.textContent = "Tocca di nuovo per confermare"; setTimeout(() => { if (b.isConnected) { b.dataset.confirm = ""; b.textContent = "Esci dalla partita"; } }, 3000); }
+      else { b.dataset.confirm = "1"; b.textContent = "Tocca ancora per uscire"; setTimeout(() => { if (b.isConnected) { b.dataset.confirm = ""; b.textContent = "Esci"; } }, 3000); }
       break;
   }
 });
 
 /* ---------- boot ---------- */
 function start(data) {
-  state = data && data.screen ? data : freshState(loadSetup());
+  const ok = data && data.screen && Array.isArray(data.cats) && (!data.cur || Array.isArray(data.cur.impostors));
+  state = ok ? data : freshState(loadSetup());
   if (state.cur) state.cur.running = false;
   render();
 }
